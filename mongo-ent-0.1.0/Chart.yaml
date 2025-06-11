@@ -1,0 +1,4 @@
+apiVersion: v2
+name: Antoine Fievre
+version: 0.1.0
+description: MongoDB Enterprise 8.0.10 Helm Chart for s390x with Auth, Replica Set, Custom Config, and Persistent Storage
