@@ -4,8 +4,6 @@
 
 ![image](https://github.com/user-attachments/assets/f29ca681-4b6c-49a9-a4c7-396b8fa9799d)
 
-![image](https://github.com/user-attachments/assets/7ed10032-0a03-4c13-88dc-5e16a507f2d2)
-
 Automatic Failover
 When a primary does not communicate with the other members of the set for more than the configured electionTimeoutMillis period (10 seconds by default), an eligible secondary calls for an election to nominate itself as the new primary. The cluster attempts to complete the election of a new primary and resume normal operations.
 
