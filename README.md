@@ -2,6 +2,13 @@
 
 ### 📌 Overview
 
+
+![image](https://github.com/user-attachments/assets/7ed10032-0a03-4c13-88dc-5e16a507f2d2)
+
+![image](https://github.com/user-attachments/assets/6b747275-1e7c-4f46-a82d-7d3457949f03)
+
+
+
 This guide outlines the steps required to deploy **MongoDB Enterprise v8.0.10** as a **3-member replica set** on **OpenShift** on **s390x Architecture**, including:
 
 - Custom `StatefulSet`, `Service`, and `Secret`
