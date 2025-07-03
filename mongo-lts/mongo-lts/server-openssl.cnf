@@ -1,0 +1,20 @@
+[ req ]
+default_bits       = 4096
+prompt             = no
+default_md         = sha256
+distinguished_name = dn
+req_extensions     = req_ext
+
+[ dn ]
+CN = mongo-ent-0
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = mongo-ent-0
+DNS.2 = mongo-ent-1
+DNS.3 = mongo-ent-2
+IP.1 = 10.128.3.78
+IP.2 = 10.131.0.12
+IP.3 = 10.128.3.79

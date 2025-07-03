@@ -1,0 +1,108 @@
+#!/bin/bash
+
+# CONFIG
+NAMESPACE="mongodb-ent"
+SECRET_NAME="mongo-tls"
+COMMON_NAME="mongo-ent-0"
+CERT_DIR="./mongo-tls"
+mkdir -p $CERT_DIR
+
+# DNS/IP for SAN entries (update as needed)
+DNS_NAMES=(mongo-ent-0 mongo-ent-1 mongo-ent-2)
+IP_ADDRS=(10.128.3.78 10.131.0.12 10.128.3.79)
+
+# CLEANUP
+rm -f $CERT_DIR/* ca.srl
+
+# 1. CA GENERATION
+echo "🔐 Generating CA..."
+openssl genrsa -out $CERT_DIR/ca.key 4096
+openssl req -x509 -new -nodes -key $CERT_DIR/ca.key -sha256 -days 365 \
+  -out $CERT_DIR/ca.crt -subj "/C=US/ST=YourState/L=YourCity/O=YourOrg/OU=IT/CN=MongoCA"
+
+# 2. SERVER KEY & CSR WITH SAN CONFIG
+echo "🔐 Generating server key and CSR..."
+
+cat > $CERT_DIR/server-openssl.cnf <<EOF
+[ req ]
+default_bits       = 4096
+prompt             = no
+default_md         = sha256
+distinguished_name = dn
+req_extensions     = req_ext
+
+[ dn ]
+CN = $COMMON_NAME
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+EOF
+
+# Add SAN entries
+i=1
+for dns in "${DNS_NAMES[@]}"; do echo "DNS.$i = $dns" >> $CERT_DIR/server-openssl.cnf; ((i++)); done
+j=1
+for ip in "${IP_ADDRS[@]}"; do echo "IP.$j = $ip" >> $CERT_DIR/server-openssl.cnf; ((j++)); done
+
+openssl genrsa -out $CERT_DIR/server.key 4096
+openssl req -new -key $CERT_DIR/server.key -out $CERT_DIR/server.csr \
+  -config $CERT_DIR/server-openssl.cnf
+
+openssl x509 -req -in $CERT_DIR/server.csr -CA $CERT_DIR/ca.crt -CAkey $CERT_DIR/ca.key \
+  -CAcreateserial -out $CERT_DIR/server.crt -days 365 \
+  -extensions req_ext -extfile $CERT_DIR/server-openssl.cnf
+
+cat $CERT_DIR/server.key $CERT_DIR/server.crt > $CERT_DIR/server_mongo.pem
+
+# 3. CLIENT CERT GENERATION
+echo "🔐 Generating client cert for mutual TLS..."
+
+openssl genrsa -out $CERT_DIR/client.key 4096
+openssl req -new -key $CERT_DIR/client.key -out $CERT_DIR/client.csr \
+  -subj "/C=US/ST=YourState/L=YourCity/O=YourOrg/OU=Clients/CN=mongoclient"
+
+openssl x509 -req -in $CERT_DIR/client.csr -CA $CERT_DIR/ca.crt -CAkey $CERT_DIR/ca.key \
+  -CAcreateserial -out $CERT_DIR/client.crt -days 365
+
+cat $CERT_DIR/client.key $CERT_DIR/client.crt > $CERT_DIR/client.pem
+
+# 4. CREATE OPENSHIFT SECRET (server cert only or both)
+echo "📦 Creating Kubernetes secret in namespace: $NAMESPACE..."
+
+oc delete secret $SECRET_NAME -n $NAMESPACE --ignore-not-found
+oc create secret generic $SECRET_NAME \
+  --from-file=server_mongo.pem=$CERT_DIR/server_mongo.pem \
+  --from-file=ca.crt=$CERT_DIR/ca.crt \
+  --from-file=client.pem=$CERT_DIR/client.pem \
+  -n $NAMESPACE
+
+# 5. DISPLAY CR PATCH BLOCK
+echo -e "\n📌 Patch your MongoDBCommunity CR like this:\n"
+
+cat <<EOF
+spec:
+  additionalMongodConfig:
+    net:
+      tls:
+        mode: requireTLS
+        certificateKeyFile: /var/lib/mongo/certs/server_mongo.pem
+        CAFile: /var/lib/mongo/certs/ca.crt
+        allowConnectionsWithoutCertificates: false
+  security:
+    tls:
+      enabled: true
+  extraVolumes:
+    - name: tls-volume
+      secret:
+        secretName: $SECRET_NAME
+  extraVolumeMounts:
+    - name: tls-volume
+      mountPath: /var/lib/mongo/certs
+      readOnly: true
+EOF
+
+echo -e "\n🔑 Use the following client cert to connect via mongosh:\n"
+echo "mongosh --tls --tlsCAFile=ca.crt --tlsCertificateKeyFile=client.pem --host $COMMON_NAME:27017"
+
