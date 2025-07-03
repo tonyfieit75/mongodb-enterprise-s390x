@@ -12,14 +12,14 @@ This guide describes how to **enable TLS and mutual TLS (mTLS)** for a **MongoDB
 ## ✅ Quick Summary
 
 ### What was done:
-1. 🔐 Generated a custom **Certificate Authority (CA)** and signed:
+1.  Generated a custom **Certificate Authority (CA)** and signed:
    - A **server certificate** with SANs for all replica set members.
    - A **client certificate** for mTLS testing.
-2. 📦 Created a **Kubernetes TLS secret** with those certs.
-3. ⚙️ Patched the **StatefulSet** to mount the secret at `/var/lib/mongo/certs`.
-4. 📝 Patched the **mongod.conf** (via ConfigMap) to enable TLS and mTLS.
-5. 🚀 Restarted MongoDB pods to apply changes.
-6. 🔐 Validated secure connection using `mongosh`.
+      Created a **Kubernetes TLS secret** with those certs.
+      Patched the **StatefulSet** to mount the secret at `/var/lib/mongo/certs`.
+      Patched the **mongod.conf** (via ConfigMap) to enable TLS and mTLS.
+      Restarted MongoDB pods to apply changes.
+      Validated secure connection using `mongosh`.
 
 ---
 
@@ -71,7 +71,7 @@ Applies it directly and triggers a pod restart.
 
 ---
 
-## 🚀 Deployment Steps
+##  Deployment Steps
 
 ### Prerequisites:
 - OpenShift cluster
@@ -102,7 +102,7 @@ chmod +x enable_mongo_tls_patch_configmap.sh
 
 ---
 
-## 🔍 Verify
+##  Verify
 
 ### Connect using `mongosh`:
 ```bash
@@ -137,7 +137,7 @@ mongo-lts/
 
 ---
 
-## 🧼 To Clean Up
+##  To Clean Up
 
 To delete the secret and roll back ConfigMap:
 
